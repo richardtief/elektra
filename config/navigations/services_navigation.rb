@@ -230,6 +230,11 @@ SimpleNavigation::Configuration.run do |navigation|
                        -> { plugin('object_storage').entry_path },
                        if: -> { services.available?(:object_storage, :containers) },
                        highlights_on: proc { params[:controller][%r{object_storage/.*}] }
+      storage_nav.item :shared_storage_ng,
+                       'Shared Object Storage NG',
+                       -> { plugin('object_storage_ng').widget_path },
+                       if: -> { services.available?(:object_storage_ng) },
+                       highlights_on: proc { params[:controller][%r{object_storage_ng/.*}] }                 
       storage_nav.item :shared_filesystem_storage,
                        'Shared File System Storage',
                        -> { plugin('shared_filesystem_storage').start_path('shares')+'?r=' },
