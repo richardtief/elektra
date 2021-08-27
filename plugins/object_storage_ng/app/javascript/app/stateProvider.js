@@ -5,7 +5,6 @@ const DispatchContext = React.createContext()
 
 export const useGlobalState = (name) => {
   const state = React.useContext(StateContext)
-  console.log(":::::::::::", state)
   return name ? state[name] : state
 }
 

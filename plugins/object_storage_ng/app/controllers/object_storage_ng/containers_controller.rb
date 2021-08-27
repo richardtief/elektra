@@ -3,8 +3,49 @@ module ObjectStorageNg
     authorization_required
 
     def index
-      render json: services.object_storage.containers
+      # byebug
+      code, containers = services.object_storage_ng.list_containers
+      if code.to_i >= 400
+        render json: {errors: e.messages}, status: code
+      else
+        render json: containers
+      end
     end
 
+    def create
+      code = services.object_storage_ng.create_container(params.require(:container))
+      if code.to_i >= 400 
+        render json: {errors: e.messages}, status: code
+      else
+        render json: {}
+      end
+    end
+
+    def empty
+      code = services.object_storage_ng.empty_container(params.require(:id))
+      if code.to_i >= 400 
+        render json: {errors: e.messages}, status: code
+      else
+        head :ok
+      end
+    end
+
+    def metadata
+      code, metadata = services.object_storage_ng.get_container_metadata(params.require(:id))
+      if code.to_i >= 400
+        render json: {errors: e.messages}, status: code
+      else
+        render json: metadata
+      end
+    end
+
+    def destroy
+      code, errors = services.object_storage_ng.delete_container(params.require(:id))
+      if code.to_i >= 400
+        render json: {errors: errors}, status: code
+      else 
+        head :ok
+      end
+    end
   end
 end

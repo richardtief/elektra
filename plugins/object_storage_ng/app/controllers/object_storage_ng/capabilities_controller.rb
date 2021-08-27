@@ -3,7 +3,12 @@ module ObjectStorageNg
     authorization_required
 
     def index
-      render json: services.object_storage.list_capabilities
+      code, capabilities = services.object_storage_ng.list_capabilities
+      if code.to_i >= 400 
+        render json: {errors: e.messages}, status: code
+      else
+        render json: capabilities
+      end
     end
   end
 end

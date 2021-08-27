@@ -1,10 +1,13 @@
 import { Modal, Button } from "react-bootstrap"
 import { Form } from "lib/elektra-form"
 import { useHistory } from "react-router-dom"
+import * as apiClient from "../../lib/apiClient"
+import { useDispatch } from "../../stateProvider"
 
 const NewContainer = () => {
   const history = useHistory()
   const [show, setShow] = React.useState(true)
+  const dispatch = useDispatch()
 
   const validate = React.useCallback((values) => !!values.name, [])
 
@@ -15,6 +18,23 @@ const NewContainer = () => {
   const back = React.useCallback((e) => {
     history.replace("/containers")
   }, [])
+
+  const submit = React.useCallback(
+    (values) =>
+      apiClient
+        .post("containers", { container: values })
+        .then(() => apiClient.get("containers"))
+        // reload containers
+        .then((items) =>
+          Promise.resolve(dispatch({ type: "RECEIVE_CONTAINERS", items }))
+        )
+        // close modal window
+        .then(close)
+        .catch((error) => {
+          throw { errors: error.message }
+        }),
+    [close, dispatch]
+  )
 
   return (
     <Modal
@@ -29,7 +49,7 @@ const NewContainer = () => {
         <Modal.Title id="contained-modal-title-lg">New Entry</Modal.Title>
       </Modal.Header>
 
-      <Form className="form" validate={validate} onSubmit={() => null}>
+      <Form className="form" validate={validate} onSubmit={submit}>
         <Modal.Body>
           <Form.Errors />
 

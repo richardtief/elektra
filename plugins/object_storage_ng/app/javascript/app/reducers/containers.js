@@ -22,6 +22,25 @@ export default (state = initialState, action = {}) => {
         isFetching: false,
         error: action.error,
       }
+    case "REQUEST_CONTAINER_METADATA": {
+      const items = state.items.slice()
+      const index = items.findIndex((i) => i.name === action.name)
+      if (index < 0) return state
+      items[index] = { ...items[index], isFetchingMetadata: true }
+      return { ...state, items }
+    }
+    case "RECEIVE_CONTAINER_METADATA": {
+      const items = state.items.slice()
+      const index = items.findIndex((i) => i.name === action.name)
+      if (index < 0) return state
+      items[index] = {
+        ...items[index],
+        isFetchingMetadata: false,
+        metadata: action.metadata,
+      }
+      console.log({ ...state, items })
+      return { ...state, items }
+    }
     default:
       return state
   }

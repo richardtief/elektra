@@ -7,8 +7,10 @@ import { reducer, initialState } from "./reducers"
 
 import Containers from "./components/containers/list"
 import ContainerProperties from "./components/containers/properties"
-// import ShowContainerModal from "./components/containers/show"
+import DeleteContainer from "./components/containers/delete"
+import EmptyContainer from "./components/containers/empty"
 import NewContainer from "./components/containers/new"
+import ContainerAccessControl from "./components/containers/accessControl"
 
 // render all components inside a hash router
 export default (props) => (
@@ -20,12 +22,23 @@ export default (props) => (
       </Route>
       <Route path="/containers" component={Containers} />
       <Route exact path="/containers/new" component={NewContainer} />
-      {/* <Route exact path="/containers/:id/show" component={ShowContainerModal} /> */}
+
       <Route
         exact
         path="/containers/:name/properties"
         component={ContainerProperties}
       />
+      <Route
+        exact
+        path="/containers/:name/delete"
+        component={DeleteContainer}
+      />
+      <Route
+        exact
+        path="/containers/:name/access-control"
+        component={ContainerAccessControl}
+      />
+      <Route exact path="/containers/:name/empty" component={EmptyContainer} />
     </BrowserRouter>
   </StateProvider>
 )

@@ -11,20 +11,23 @@ const Container = ({
   canEmpty,
 }) => {
   const history = useHistory()
-  const handleSelect = React.useCallback((e) => {
-    switch (e) {
-      case "1":
-        return history.push(`/containers/${container.name}/properties`)
-      case "2":
-        return history.push(`/containers/${container.name}/access-control`)
-      case "3":
-      //history.push(`/containers/${container.name}/properties`)
-      case "4":
-      //history.push(`/containers/${container.name}/properties`)
-      default:
-        return
-    }
-  }, [])
+  const handleSelect = React.useCallback(
+    (e) => {
+      switch (e) {
+        case "1":
+          return history.push(`/containers/${container.name}/properties`)
+        case "2":
+          return history.push(`/containers/${container.name}/access-control`)
+        case "3":
+          return history.push(`/containers/${container.name}/empty`)
+        case "4":
+          return history.push(`/containers/${container.name}/delete`)
+        default:
+          return
+      }
+    },
+    [container, history]
+  )
 
   return (
     <tr>
@@ -34,8 +37,8 @@ const Container = ({
           {container.name}
         </a>
       </td>
-      <td>{unit.format(container.bytes_used)}</td>
-      <td>{container.object_count}</td>
+      <td>{unit.format(container.bytes)}</td>
+      <td>{container.count}</td>
       <td className="snug">
         <Dropdown
           id={`container-dropdown-${container.name}`}
@@ -51,7 +54,9 @@ const Container = ({
               <MenuItem eventKey="2">Access Control</MenuItem>
             )}
             {(canShow || canViewAccessControl) && <MenuItem divider />}
-            {canEmpty && <MenuItem eventKey="3">Empty</MenuItem>}
+            {container.count > 0 && canEmpty && (
+              <MenuItem eventKey="3">Empty</MenuItem>
+            )}
             {canDelete && <MenuItem eventKey="4">Delete</MenuItem>}
           </Dropdown.Menu>
         </Dropdown>
