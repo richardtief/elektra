@@ -6,19 +6,6 @@ module ServiceLayer
 
       METADATA_HEADER_PREFIX = /^(x-container|x-versions).*/
 
-
-      # CONTAINER_WRITE_ATTRMAP = {
-      #   # name in our model => name in create/update API request
-      #   'bytes_quota'        => 'x-container-meta-quota-bytes',
-      #   'object_count_quota' => 'x-container-meta-quota-count',
-      #   'read_acl'           => 'x-container-read',
-      #   'write_acl'          => 'x-container-write',
-      #   'versions_location'  => 'x-versions-location',
-      #   'web_index'          => 'x-container-meta-web-index',
-      #   'web_file_listing'   => 'x-container-meta-web-listings'
-      # }.freeze
-
-
       def list_containers
         return 200, elektron_object_storage.get('/').body
       rescue Elektron::Errors::ApiResponse => e
@@ -31,12 +18,18 @@ module ServiceLayer
 
         response.header.each_header do |key, value| 
           next unless METADATA_HEADER_PREFIX.match? key
-          newKey = key.gsub('x-container-','').gsub('x-','').gsub(/-/,'_')
-          metadata[newKey] = value 
+          metadata[key] = value 
         end
         metadata['public_url'] = public_url(name)
 
         return 200, metadata
+      rescue Elektron::Errors::ApiResponse => e
+        return e.code, e.messages.join(', ')
+      end
+
+      def update_container_metadata(name,metadata={})
+        elektron_object_storage.post(name, headers: metadata)
+        return 204
       rescue Elektron::Errors::ApiResponse => e
         return e.code, e.messages.join(', ')
       end

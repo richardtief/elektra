@@ -39,6 +39,22 @@ module ObjectStorageNg
       end
     end
 
+    def update_metadata
+      container_name = params.require(:id)
+      attrs = params.require(:metadata).permit!
+      metadata = attrs.select {|k,v| !v.blank?}
+      metadata["x-versions-location"] = "" unless metadata["x-versions-location"]
+      metadata["x-container-meta-web-listings"] = "1" if metadata["x-container-meta-web-listings"] 
+
+      # byebug
+      code = services.object_storage_ng.update_container_metadata(container_name,metadata)
+      if code.to_i >= 400
+        render json: {errors: e.messages}, status: code
+      else
+        render json: metadata
+      end
+    end
+
     def destroy
       code, errors = services.object_storage_ng.delete_container(params.require(:id))
       if code.to_i >= 400

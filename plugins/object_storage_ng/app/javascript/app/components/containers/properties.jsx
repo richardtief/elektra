@@ -1,7 +1,7 @@
 import { Modal, Button, Alert } from "react-bootstrap"
 import { Form } from "lib/elektra-form"
 import { useHistory, useParams, Link } from "react-router-dom"
-import { useDispatch, useGlobalState } from "../../stateProvider"
+import { useGlobalState } from "../../stateProvider"
 import React from "react"
 import { Unit } from "lib/unit"
 const unit = new Unit("B")
@@ -33,17 +33,17 @@ const CustomMetaTags = ({ values, onChange, reservedKeys }) => {
   // updates requires two params:
   // 1. identifier of the entry e.g. 0
   // 2. new key or new value or both of them
-  // example: update(0, { "key": "meta_xyz"})
+  // example: update(0, { "key": "xyz"})
   // example: update(1, { "value": "valueXYZ"})
   const update = React.useCallback(
     (index, { key, value }) => {
       let errors = []
       // do not allow to overwrite existing keys
       const oldKeys = tags.map((t) => t.key)
-      if (!value && key && oldKeys.includes(`meta_${key}`))
+      if (!value && key && oldKeys.includes(key))
         errors.push("the key already exists")
       // do not allow to overwrite reserved keys
-      if (reservedKeys.indexOf(`meta_${key}`) >= 0) {
+      if (reservedKeys.indexOf(key) >= 0) {
         errors.push("reserved key (will be ignored)")
       }
       setError(errors.length > 0 ? errors.join(", ") : null)
@@ -59,18 +59,14 @@ const CustomMetaTags = ({ values, onChange, reservedKeys }) => {
 
   return (
     <React.Fragment>
-      <div className="small">
-        Reserved keys:{" "}
-        {reservedKeys.map((k) => k.replace("meta_", "")).join(", ")}
-      </div>
+      <div className="small">Reserved keys: {reservedKeys.join(", ")}</div>
       {error && <Alert bsStyle="danger">{error}</Alert>}
       {tags.map((tag, i) => (
         <React.Fragment key={i}>
-          {console.log(i, tag)}
           <div className="input-group">
             <input
               type="text"
-              value={tag ? tag.key.replace("meta_", "") : ""}
+              value={tag ? tag.key : ""}
               placeholder="Key"
               onChange={(e) => {
                 e.preventDefault()
@@ -101,8 +97,6 @@ const FormBody = ({ containerName, otherContainers }) => {
 
   return (
     <React.Fragment>
-      <br />
-      <Alert>{JSON.stringify(values, null, 2)}</Alert>
       <div className="row">
         <div className="col-md-6">
           <Form.Element label="Object count" name="object_count" inline>
@@ -142,6 +136,11 @@ const FormBody = ({ containerName, otherContainers }) => {
               type="text"
               name="meta_quota_bytes"
             />
+            {values.meta_quota_bytes && (
+              <small className="text-info">
+                {unit.format(values.meta_quota_bytes)}
+              </small>
+            )}
           </Form.Element>
         </div>
       </div>
@@ -264,9 +263,10 @@ const FormBody = ({ containerName, otherContainers }) => {
         <label>Metadata</label>
         <CustomMetaTags
           reservedKeys={[
-            "meta_web_index",
-            "meta_web_listings",
-            "meta_web_index",
+            "web-index",
+            "web-listings",
+            "quoty-count",
+            "quota-bytes",
           ]}
           values={values.customMetadataTags}
           onChange={(newValues) => onChange("customMetadataTags", newValues)}
@@ -282,58 +282,41 @@ const ContainerProperties = ({}) => {
   const [show, setShow] = React.useState(!!name)
   const [error, setError] = React.useState()
   const { containers, capabilities } = useGlobalState()
-  const dispatch = useDispatch()
 
-  const container = React.useMemo(() => {
-    if (!containers?.items) return
-    return containers.items.find((c) => c.name === name)
-  }, [containers])
-
-  // const customMetadataTags = React.useMemo(() => {
-  //   if (!container?.metadata) return {}
-  //   const result = {}
-  //   Object.keys(container.metadata).forEach((k) => {
-  //     if (
-  //       k.startsWith("meta_") &&
-  //       !k.startsWith("meta_web") &&
-  //       !k.startsWith("meta_quota")
-  //     )
-  //       result[k] = container.metadata[k]
-  //   })
-  //   return result
-  // }, [container])
+  const [metadata, setMetadata] = React.useState()
+  const [isFetchingMetadata, setIsFetchingMetadata] = React.useState(false)
 
   const customMetadataTags = React.useMemo(() => {
-    if (!container?.metadata) return []
+    if (!metadata) return []
     const result = []
-    Object.keys(container.metadata).forEach((k) => {
-      if (
-        k.startsWith("meta_") &&
-        !k.startsWith("meta_web") &&
-        !k.startsWith("meta_quota")
-      )
-        result.push({ key: k, value: container.metadata[k] })
+    const reserved = [
+      "x-container-meta-web-index",
+      "x-container-meta-web-listings",
+      "x-container-meta-quota-count",
+      "x-container-meta-quota-bytes",
+    ]
+    Object.keys(metadata).forEach((k) => {
+      if (k.startsWith("x-container-meta-") && reserved.indexOf(k) < 0)
+        result.push({
+          key: k.replace("x-container-meta-", ""),
+          value: metadata[k],
+        })
     })
     return result
-  }, [container])
+  }, [metadata])
 
   React.useEffect(() => {
-    // be carefull! changing this if query can result in infinity loops
-    if (containers.isFetching) return
-    dispatch({ type: "REQUEST_CONTAINER_METADATA", name: name })
+    setIsFetchingMetadata(true)
     apiClient
       .get(`containers/${name}/metadata`)
-      .then((metadata) => {
-        dispatch({
-          type: "RECEIVE_CONTAINER_METADATA",
-          name: name,
-          metadata,
-        })
-      })
+      .then((metadata) => setMetadata(metadata))
       .catch((error) => {
         setError(error.message)
       })
-  }, [containers.isFetching, name, dispatch])
+      .finally(() => setIsFetchingMetadata(false))
+
+    return () => setMetadata(null)
+  }, [name])
 
   const otherContainers = React.useMemo(() => {
     if (containers.isFetching) return
@@ -348,20 +331,64 @@ const ContainerProperties = ({}) => {
     history.replace("/containers")
   }, [])
 
+  const submit = React.useCallback(
+    (values) => {
+      if (!metadata) return Promise.reject("Could not find container")
+
+      let newValues = {
+        "x-versions-location":
+          values.versions_location_enabled && values.versions_location,
+        "x-container-meta-web-index":
+          values.meta_web_index_enabled && values.meta_web_index,
+        "x-container-meta-web-listings": values.meta_web_listings,
+        "x-container-meta-quota-count": values.meta_quota_count,
+        "x-container-meta-quota-bytes": values.meta_quota_bytes,
+      }
+      const reservedKeys = Object.keys(newValues)
+      values.customMetadataTags.forEach((t) => {
+        const key = `x-container-meta-${t.key}`
+        if (reservedKeys.indexOf(key) < 0) newValues[key] = t.value
+      })
+
+      for (let key in metadata) {
+        if (!key.startsWith("x-container-meta")) continue
+        if ((metadata[key] && !newValues[key]) || !newValues[key]) {
+          newValues[key.replace("x-container", "x-remove-container")] = "1"
+          delete newValues[key]
+        }
+      }
+
+      return (
+        apiClient
+          .put(`containers/${name}/metadata`, { metadata: newValues })
+          // close modal window
+          .then(close)
+          .catch((error) => {
+            throw { errors: error.message }
+          })
+      )
+    },
+    [metadata, close, name]
+  )
+
   const initialValues = React.useMemo(() => {
-    if (!container || !container.metadata) return {}
+    if (!metadata) return {}
     return {
-      ...container.metadata,
-      versions_location: container.metadata?.x_versions_location,
-      versions_location_enabled: !!container.metadata?.x_versions_location,
+      public_url: metadata["public_url"],
+      versions_location: metadata["x-versions-location"],
+      versions_location_enabled: !!metadata["x-versions-location"],
       cap_staticweb: capabilities.data?.staticweb,
-      meta_web_index_enabled: !!container.metadata?.meta_web_index,
-      meta_web_listings: !!container.metadata?.meta_web_listings,
-      meta_web_index: container.metadata?.meta_web_index || "index.html",
-      total_size: unit.format(container.bytes),
+      meta_web_index_enabled: !!metadata["x-container-meta-web-index"],
+      meta_web_listings: !!metadata["x-container-meta-web-listings"],
+      meta_web_index: metadata["x-container-meta-web-index"] || "index.html",
+      total_size: unit.format(metadata["x-container-bytes-used"]),
+      object_count: metadata["x-container-object-count"],
+      meta_quota_count: metadata["x-container-meta-quota-count"],
+      meta_quota_bytes: metadata["x-container-meta-quota-bytes"],
+      read: metadata["x-container-read"],
       customMetadataTags,
     }
-  }, [container])
+  }, [metadata, customMetadataTags, capabilities])
 
   return (
     <Modal
@@ -374,38 +401,33 @@ const ContainerProperties = ({}) => {
     >
       <Modal.Header closeButton>
         <Modal.Title id="contained-modal-title-lg">
-          Container: {container?.name}
+          Container: {name}
         </Modal.Title>
       </Modal.Header>
 
       <Form
-        onSubmit={(e) => null}
+        onSubmit={submit}
         className="form"
-        validate={(values) => true}
+        validate={() => true}
         initialValues={initialValues}
       >
         <Modal.Body>
-          {JSON.stringify(container, null, 2)}
-          {/* <pre>{JSON.stringify(capabilities, null, 2)}</pre> */}
-          {containers.isFetching || container?.isFetchingMetadata ? (
+          {isFetchingMetadata ? (
             <span>
               <span className="spinner" />
               Loading...
             </span>
-          ) : !container ? (
+          ) : !metadata ? (
             <span>Container not found!</span>
           ) : error ? (
             <Alert bsStyle="danger">{error}</Alert>
           ) : (
-            <FormBody
-              containerName={container?.name}
-              otherContainers={otherContainers}
-            />
+            <FormBody containerName={name} otherContainers={otherContainers} />
           )}
         </Modal.Body>
         <Modal.Footer>
           <Button onClick={close}>Cancel</Button>
-          {container && <Form.SubmitButton label="Save" />}
+          {metadata && <Form.SubmitButton label="Save" />}
         </Modal.Footer>
       </Form>
     </Modal>

@@ -5,6 +5,7 @@ ObjectStorageNg::Engine.routes.draw do
     member do
       put 'empty' => 'containers#empty'
       get 'metadata' => 'containers#metadata'
+      put 'metadata' => 'containers#update_metadata'
     end
   end
   resources :capabilities, only: %i[index]
