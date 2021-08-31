@@ -16,10 +16,25 @@ const checkStatus = (response) => {
   }
 }
 
-export const get = (url, params = {}) =>
-  fetch(url, params)
+export const get = (path, params = {}) => {
+  let url = path
+  if (params && Object.keys(params).length > 0) {
+    url = new URL(
+      window.location.protocol +
+        "//" +
+        window.location.host +
+        window.location.pathname +
+        path
+    )
+    Object.keys(params).forEach((key) =>
+      url.searchParams.append(key, params[key])
+    )
+  }
+
+  return fetch(url)
     .then(checkStatus)
     .then((response) => response.json())
+}
 
 export const post = (url, params = {}) =>
   fetch(url, {

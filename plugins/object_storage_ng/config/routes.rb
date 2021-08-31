@@ -6,6 +6,8 @@ ObjectStorageNg::Engine.routes.draw do
       put 'empty' => 'containers#empty'
       get 'metadata' => 'containers#metadata'
       put 'metadata' => 'containers#update_metadata'
+      get 'check-acls' => 'containers#check_acls'
+      put 'access-control' => 'containers#update_access_control'
     end
   end
   resources :capabilities, only: %i[index]
