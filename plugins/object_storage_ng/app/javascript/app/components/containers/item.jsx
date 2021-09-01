@@ -1,5 +1,5 @@
 import { MenuItem, Dropdown } from "react-bootstrap"
-import { useHistory } from "react-router-dom"
+import { useHistory, Link } from "react-router-dom"
 import { Unit } from "lib/unit"
 const unit = new Unit("B")
 
@@ -33,9 +33,12 @@ const Container = ({
     <tr>
       <td className="name-with-icon">
         <span className="fa fa-fw fa-hdd-o" title="Container" />{" "}
-        <a href="#" onClick={(e) => e.preventDefault()} title="List Containers">
+        <Link
+          to={`/containers/${container.name}/entries`}
+          title="List Containers"
+        >
           {container.name}
-        </a>
+        </Link>
       </td>
       <td>{unit.format(container.bytes)}</td>
       <td>{container.count}</td>

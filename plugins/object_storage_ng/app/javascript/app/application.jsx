@@ -1,6 +1,6 @@
 /* eslint no-console:0 */
 import React from "react"
-import { BrowserRouter, Route, Redirect } from "react-router-dom"
+import { BrowserRouter, Route, Redirect, Switch } from "react-router-dom"
 
 import StateProvider from "./stateProvider"
 import { reducer, initialState } from "./reducers"
@@ -11,16 +11,23 @@ import DeleteContainer from "./components/containers/delete"
 import EmptyContainer from "./components/containers/empty"
 import NewContainer from "./components/containers/new"
 import ContainerAccessControl from "./components/containers/accessControl"
+import Entries from "./components/entries/list"
 
 // render all components inside a hash router
 export default (props) => (
   <StateProvider reducer={reducer} initialState={initialState}>
     <BrowserRouter basename={`${window.location.pathname}?r=`}>
       {/* redirect root to shares tab */}
+
       <Route exact path="/">
         <Redirect to="/containers" />
       </Route>
-      <Route path="/containers" component={Containers} />
+
+      <Switch>
+        <Route exact path="/containers/:name/entries" component={Entries} />
+        <Route path="/containers" component={Containers} />
+      </Switch>
+
       <Route exact path="/containers/new" component={NewContainer} />
 
       <Route

@@ -31,9 +31,7 @@ const EntryList = ({}) => {
     }
   }, [policy])
 
-  React.useEffect(() => {
-    if (!policy.isAllowed("object_storage_ng:container_list")) return
-
+  const load = React.useCallback(() => {
     dispatch({ type: "REQUEST_CONTAINERS" })
     apiClient
       .get("containers")
@@ -41,7 +39,13 @@ const EntryList = ({}) => {
       .catch((error) =>
         dispatch({ type: "RECEIVE_CONTAINERS_ERROR", error: error.message })
       )
-  }, [])
+  }, [dispatch])
+
+  React.useEffect(() => {
+    if (!policy.isAllowed("object_storage_ng:container_list")) return
+    if (containers.updatedAt) return
+    load()
+  }, [containers.updatedAt, load])
 
   const items = React.useMemo(() => {
     if (!containers.items) return []
@@ -80,6 +84,9 @@ const EntryList = ({}) => {
               <Link to="/containers/new" className="btn btn-primary">
                 Create new
               </Link>
+              <button className="btn btn-warning" onClick={(e) => load()}>
+                Reload
+              </button>
             </React.Fragment>
           )}
         </div>
