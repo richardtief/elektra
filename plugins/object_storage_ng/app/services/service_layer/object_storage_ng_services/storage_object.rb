@@ -4,8 +4,38 @@ module ServiceLayer
     module StorageObject
       # OBJECT #
 
+      def get_object_content(container_name, object_path)
+        response = elektron_object_storage.get(
+          "#{container_name}/#{object_path}"
+        )
 
+        metadata = {}
 
+        response.header.each_header do |key, value| 
+          metadata[key] = value 
+        end
+        content = response.body.is_a?(String) ? response.body : response.body.to_string 
+
+        return 200, metadata, content
+      rescue Elektron::Errors::ApiResponse => e
+        return e.code, e.messages.join(', ')
+      end
+
+      def get_object_metadata(container_name,object_path)
+        return nil if container_name.blank? || object_path.blank?
+        response = elektron_object_storage.head(
+          "#{container_name}/#{object_path}"
+        )
+        metadata = {}
+
+        response.header.each_header do |key, value| 
+          metadata[key] = value 
+        end
+
+        return 200, metadata
+      rescue Elektron::Errors::ApiResponse => e
+        return e.code, e.messages.join(', ')  
+      end
 
       # [
       #   {
@@ -34,12 +64,53 @@ module ServiceLayer
         return e.code, e.messages.join(', ')
       end
 
+
+      def delete_folder(container_name, object_path)
+        targets = list_objects_below_path(
+          container_name, sanitize_path(object_path) + '/'
+        ).map do |obj|
+          { container: container_name, object: obj.path }
+        end
+        bulk_delete(targets)
+      end
+
       def delete_object(container_name,object_name) 
         response = elektron_object_storage.delete("#{container_name}/#{object_name}")
         return response.header.code
       rescue Elektron::Errors::ApiResponse => e
         return e.code, e.messages.join(', ')
       end
+
+      def delete_object(container_name, object_path, keep_segments = true)
+        code, headers = get_object_metadata(container_name, object_path)
+
+        return code, headers if code.to_i >= 400
+
+        byebug
+        # if keep_segments
+        #   elektron_object_storage.delete("#{container_name}/#{object_path}")
+        # else
+        #   if headers['x-static-large-object']
+        #     elektron_object_storage.delete("#{container_name}/#{object.path}?multipart-manifest=delete")
+        #   elsif headers['x-object-manifest']
+        #     # delete dlo manifest
+        #     elektron_object_storage.delete("#{container_name}/#{object.path}")
+            
+        #     # delete segments container
+        #     segments_container = headers['x-object-manifest'].split('/')).first
+        #     segments_folder_path = headers['x-object-manifest'].slice!(segments_container)
+        #     delete_folder(segments_container,segments_folder_path)
+        #   else
+        #     elektron_object_storage.delete("#{container_name}/#{object.path}")
+        #   end
+        # end
+        # return nil because nothing usable is returned from the API
+        return code
+      rescue Elektron::Errors::ApiResponse => e
+        return e.code, e.messages.join(', ')
+      end
+
+
 
       # <- body:  {"Response Status"=>"200 OK", "Response Body"=>"", "Number Deleted"=>3, "Number Not Found"=>0, "Errors"=>[]}
       def bulk_delete_objects(container_name,objects, bulk_delete_options = nil)

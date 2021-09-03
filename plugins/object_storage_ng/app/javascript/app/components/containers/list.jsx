@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import { Link, Switch, Route } from "react-router-dom"
 import { policy } from "policy"
 import { SearchField } from "lib/components/search_field"
 import Container from "./item"
@@ -7,12 +7,15 @@ import CapabilitiesPopover from "../capabilities/popover"
 import { useGlobalState, useDispatch } from "../../stateProvider"
 import * as apiClient from "../../lib/apiClient"
 
-const EntryList = ({}) => {
-  // TODO: remove
-  const state = useGlobalState()
-  const [showState, setShowState] = React.useState(false)
-  // ----
+// import ContainerProperties from "./properties"
+// import DeleteContainer from "./delete"
+// import EmptyContainer from "./empty"
+// import NewContainer from "./new"
+// import ContainerAccessControl from "./accessControl"
 
+import Router from "./router"
+
+const Containers = ({}) => {
   const [searchTerm, setSearchTerm] = React.useState()
   const containers = useGlobalState("containers")
   const dispatch = useDispatch()
@@ -55,20 +58,7 @@ const EntryList = ({}) => {
 
   return (
     <React.Fragment>
-      {/*TODO: remove */}
-      <button
-        onClick={(e) => {
-          e.preventDefault()
-          setShowState(!showState)
-        }}
-      >
-        state
-      </button>
-      <div className={`collapse ${showState ? "in" : ""}`} id="collapseExample">
-        State: <pre>{JSON.stringify(state, null, 2)}</pre>
-      </div>
-      {/* --------------*/}
-
+      <Router />
       <div className="toolbar">
         <SearchField
           onChange={(term) => setSearchTerm(term)}
@@ -121,4 +111,4 @@ const EntryList = ({}) => {
   )
 }
 
-export default EntryList
+export default Containers

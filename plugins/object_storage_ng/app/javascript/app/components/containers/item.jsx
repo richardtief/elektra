@@ -34,7 +34,7 @@ const Container = ({
       <td className="name-with-icon">
         <span className="fa fa-fw fa-hdd-o" title="Container" />{" "}
         <Link
-          to={`/containers/${container.name}/entries`}
+          to={`/containers/${container.name}/objects`}
           title="List Containers"
         >
           {container.name}

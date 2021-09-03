@@ -43,7 +43,6 @@ const NewContainer = () => {
       onExit={back}
       bsSize="large"
       aria-labelledby="contained-modal-title-lg"
-      dialogClassName="modal-xl"
     >
       <Modal.Header closeButton>
         <Modal.Title id="contained-modal-title-lg">New Entry</Modal.Title>

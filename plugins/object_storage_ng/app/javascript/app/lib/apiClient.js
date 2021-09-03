@@ -5,6 +5,24 @@ const csrfTokenTag = metaTags.find(
 )
 const csrfToken = csrfTokenTag && csrfTokenTag.getAttribute("content")
 
+const pathParamsToUrl = (path, params) => {
+  let url = path || ""
+  if (!params || Object.keys(params).length === 0) return url
+
+  url = new URL(
+    window.location.protocol +
+      "//" +
+      window.location.host +
+      window.location.pathname +
+      path
+  )
+  Object.keys(params).forEach((key) =>
+    url.searchParams.append(key, params[key])
+  )
+
+  return url
+}
+
 // Check response status
 const checkStatus = (response) => {
   if (response.status >= 200 && response.status < 300) {
@@ -17,19 +35,7 @@ const checkStatus = (response) => {
 }
 
 export const get = (path, params = {}) => {
-  let url = path
-  if (params && Object.keys(params).length > 0) {
-    url = new URL(
-      window.location.protocol +
-        "//" +
-        window.location.host +
-        window.location.pathname +
-        path
-    )
-    Object.keys(params).forEach((key) =>
-      url.searchParams.append(key, params[key])
-    )
-  }
+  let url = pathParamsToUrl(path, params)
 
   return fetch(url)
     .then(checkStatus)
@@ -49,8 +55,10 @@ export const post = (url, params = {}) =>
     .then(checkStatus)
     .then((response) => response.json())
 
-export const del = (url) =>
-  fetch(url, {
+export const del = (path, params = {}) => {
+  let url = pathParamsToUrl(path, params)
+
+  return fetch(url, {
     method: "DELETE",
     headers: {
       Accept: "application/json",
@@ -58,6 +66,7 @@ export const del = (url) =>
       "x-csrf-token": csrfToken,
     },
   }).then(checkStatus)
+}
 
 export const put = (url, params = {}) =>
   fetch(url, {
